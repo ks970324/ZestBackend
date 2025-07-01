@@ -1,0 +1,24 @@
+# 編譯與輸出
+bin/
+obj/
+
+# 使用者設定與 IDE
+*.user
+*.suo
+.vscode/
+.idea/
+
+# 測試與快取
+TestResults/
+*.coverage
+*.coveragexml
+
+# 私密與開發設定
+.env
+appsettings.Development.json
+appsettings.Local.json
+secrets.json
+
+# 日誌與快取
+*.log
+*.tmp
