@@ -9,7 +9,7 @@ namespace ZestApi.Controllers
     {
         private static string CurrentRound = "";
         private static string Attacker = "";
-        private static string GameResult = "";
+        private static string GameResult = "still progress";
         
         private static Point RedPosition = new Point { X = 1, Y = 1 };
         private static Point BluePosition = new Point { X = 1, Y = 1 };
@@ -27,7 +27,7 @@ namespace ZestApi.Controllers
                 RedHP = 10;
                 BlueHP = 10;
                 Attacker = CurrentRound;
-                GameResult = "";
+                GameResult = "still progress";
                 
             
 
@@ -36,20 +36,13 @@ namespace ZestApi.Controllers
                 CurrentRound = CurrentRound,
                 RedPosition = RedPosition,
                 BluePosition = BluePosition,
-                Attacker = Attacker
+                Attacker = Attacker,
+                BlueHP = BlueHP,
+                RedHP = RedHP,
+                GameResult = GameResult
+                
             });
 
-        }
-
-        [HttpPost("getnextround")]
-        public IActionResult NextRound()
-        {
-            if (!string.IsNullOrEmpty(CurrentRound))
-            {
-                CurrentRound = CurrentRound == "blue" ? "red" : "blue";
-            }
-
-            return Ok(new CurrentRoundResponse { CurrentRound = CurrentRound });
         }
 
         [HttpPost("getbluepos")]
@@ -63,21 +56,6 @@ namespace ZestApi.Controllers
                 RedPosition = RedPosition,
                 BluePosition = BluePosition
             });
-        }
-
-        [HttpPost("getredpos")]
-        public IActionResult GetRedPosition([FromBody] PositionRequest request)
-        {
-            BluePosition = request.BluePosition;
-            var random = new Random();
-            RedPosition = new Point { X = random.Next(0, 3), Y = random.Next(0, 3) };
-
-            return Ok(new PositionResponse
-            {
-                RedPosition = RedPosition,
-                BluePosition = BluePosition
-            });
-
         }
 
         [HttpPost("blueattack")]
@@ -192,6 +170,9 @@ namespace ZestApi.Controllers
         public string Attacker { get; set; }
         public Point RedPosition { get; set; }
         public Point BluePosition { get; set; }
+        public int BlueHP { get; set; }
+        public int RedHP { get; set; }
+        public string GameResult { get; set; }
         
     }
 
