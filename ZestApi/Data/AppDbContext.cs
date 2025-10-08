@@ -15,8 +15,9 @@ namespace ZestApi.Data
     public class UserInfo
     {
         [Key]
-        public string email { get; set; }
-        public string password_hash { get; set; }
+        public string Email { get; set; }
+        public string Password_hash { get; set; }
+        public string Image { get; set; }
     }
 
 }
