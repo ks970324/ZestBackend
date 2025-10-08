@@ -3,6 +3,9 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using ZestApi.Data;
+using ZestApi.Repositories;
+using ZestApi.Services;
+using Serilog;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -20,7 +23,13 @@ builder.Services.AddCors(options =>
     });
 });
 
+// add log
 
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.File("logs/log.txt", rollingInterval: RollingInterval.Day)
+    .CreateLogger();
+
+builder.Host.UseSerilog();
 
 
 builder.Services.AddAuthentication(options =>
@@ -44,6 +53,10 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("PostgresDb")));
+
+// DI register  
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IRegisterServices, RegisterServices>();
 
 
 

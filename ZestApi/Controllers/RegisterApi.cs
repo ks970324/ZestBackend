@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using Npgsql;
+using ZestApi.Services;
+using ZestApi.DTO;
 
 namespace ZestApi.Controllers
 {
@@ -7,85 +8,42 @@ namespace ZestApi.Controllers
     [Route("api/[controller]")]
     public class RegisterController : ControllerBase
     {
-        
-        private readonly IConfiguration _config;
+        private readonly IRegisterServices _registerServices;
+        private readonly ILogger<RegisterController> _logger;
 
-        public RegisterController(IConfiguration config)
+        public RegisterController(IRegisterServices registerServices, ILogger<RegisterController> logger)
         {
-            _config = config;
+            _registerServices = registerServices;
+            _logger = logger;
         }
 
-        
-        
-        [HttpGet("checkemail")]
-        public IActionResult CheckEmail([FromQuery] string email)
+        [HttpGet("CheckEmail")]
+        public async Task<IActionResult> CheckEmail([FromQuery] CheckEmailRequest request)
         {
-            var connStr = _config.GetConnectionString("PostgresDb");
-
-            using var conn = new NpgsqlConnection(connStr);
-            conn.Open();
-
-            using var cmd = new NpgsqlCommand("SELECT EXISTS (SELECT 1 FROM userinfo WHERE email = @email)", conn);
-            cmd.Parameters.AddWithValue("email", email);
-
-            var exists = (bool)cmd.ExecuteScalar();
-
-            return Ok(new checkEmailResponse { exists = exists });
+            var result = await _registerServices.CheckEmailAsync(request);
+            return Ok(result);
         }
 
-        
-        [HttpPost("add")]
-        public IActionResult AddUser([FromBody] RegisterDto registerDto)
+
+        [HttpPost("Add")]
+        public async Task<IActionResult> Register([FromBody] RegisterRequest request)
         {
             try
             {
-                var connStr = _config.GetConnectionString("PostgresDb");
-
-                using var conn = new NpgsqlConnection(connStr);
-                conn.Open();
-
-                using var cmd =
-                    new NpgsqlCommand(
-                        "INSERT INTO userinfo (email,password_hash,image) VALUES (@email,@password_hash,@image)", conn);
-
-                cmd.Parameters.AddWithValue("email", registerDto.Email);
-                cmd.Parameters.AddWithValue("password_hash", registerDto.Password);
-                cmd.Parameters.AddWithValue("image", registerDto.Characterspath);
-                cmd.ExecuteNonQuery();
-
-
-                return Ok(new { message = "User added!" });
+                var result = await _registerServices.RegisterAsync(request);
+                return Ok(result);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Error adding user: " + ex.Message });
+                _logger.LogError(ex, "Error while registering user");
+                return StatusCode(500, new { message = "Internal server error" });
             }
+
+
         }
+        
 
 
     }
-
-
-
-
-    public class RegisterDto
-    {
-        public string Email { get; set; }
-        public int Password { get; set; }
-        public string Characterspath { get; set; }
-    }
-
-
-
-    public class checkEmailResponse
-    { 
-        public bool exists { get; set; }
-    }
-    
-    public class checkEmailRequest
-    {
-        public string Email { get; set; }
-    }
-
 }
 
