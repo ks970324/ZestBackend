@@ -1,12 +1,9 @@
 
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
 using Microsoft.AspNetCore.Authorization;
-using Npgsql;
-using ZestApi.Data;
+using Microsoft.AspNetCore.Mvc.Filters;
+using ZestApi.Services;
+using ZestApi.DTO;
 
 
 
@@ -17,138 +14,73 @@ namespace ZestApi.Controllers
 
     [ApiController]
     [Route("api/[controller]")]
-    public class ZestAuthController : ControllerBase
+    [ServiceFilter(typeof(ExceptionFilterAttribute))]
+    public class AuthController : ControllerBase
     {
 
-        private readonly IConfiguration _configuration;
+        private readonly IAuthService _authService;
+        private readonly ILogger<AuthController> _logger;
+        
 
-        public ZestAuthController(IConfiguration configuration)
+        public AuthController(IAuthService authService, ILogger<AuthController> logger)
         {
-            _configuration = configuration;
+            _authService = authService;
+            _logger = logger;
         }
         
-       
-
 
         [HttpPost("Login")]
         [AllowAnonymous]
-
-        public IActionResult Login([FromBody] LoginRequest request, [FromServices] AppDbContext db)
+        public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
             try
             {
-                var user = db.userinfo
-                    .FirstOrDefault(u => u.email == request.Email && u.password_hash == request.Password);
-
-                if (user != null)
+                var result = await _authService.LoginAsync(request.ExtractDto());
+                if (!result.Status)
                 {
-                    var claims = new[]
-                    {
-                        new Claim(ClaimTypes.Name, request.Email)
-                    };
-
-
-
-                    var JwtKey = _configuration["Jwt:Key"];
-
-                    var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(JwtKey));
-                    var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-                    var tokens = new JwtSecurityToken(
-                        claims: claims,
-                        expires: DateTime.UtcNow.AddDays(7),
-                        signingCredentials: creds,
-                        notBefore: DateTime.UtcNow
-                    );
-
-                    var token = new JwtSecurityTokenHandler().WriteToken(tokens);
-
-                    bool remember = request.Remember;
-
-                    return Ok(new LoginResponse()
-                    {
-                        Token = token,
-                        Status = true,
-                        Remember = remember
-                    });
+                    return Unauthorized(new { Message = "Invalid email or password." });
                 }
 
-                return Unauthorized();
-
+                return Ok(result);
             }
+
             catch (Exception ex)
             {
-                Console.WriteLine("Login Error: " + ex.Message);
-                return StatusCode(500, "Server Error: " + ex.Message);
+                //_logger.LogError(ex, "Error while user login");
+                return StatusCode(500, new { message = ex.Message});
             }
+                
+                
         }
 
-        [Authorize]
-        [HttpGet("me")]
-        public IActionResult Me()
-        {
-            var email = User.Identity?.Name;
-            if (email == null) return Unauthorized();
-
-            var user = new { Email = email };
-            return Ok(new { user });
-        }
-        
-        
         [Authorize]
         [HttpGet("getcharacters")]
-        public IActionResult GetCharacters()
+        public async Task<IActionResult>GetCharacters()
         {
             var email = User.Identity?.Name;
-            if (string.IsNullOrEmpty(email))
-            {
-                return Unauthorized();
-            }
+            if (string.IsNullOrEmpty(email)) return Unauthorized();
 
-            var connStr = _configuration.GetConnectionString("PostgresDb");
-            using var conn = new NpgsqlConnection(connStr);
-            conn.Open();
+            var result = await _authService.GetCharacterAsync(email);
+            if (result == null) return NotFound(new { Message = "No image found" });
 
-            using var cmd = new NpgsqlCommand(
-                "SELECT image FROM userinfo WHERE email = @Email LIMIT 1", conn
-            );
-            cmd.Parameters.AddWithValue("Email", email);
-
-            var result = cmd.ExecuteScalar();
-            if (result == null || result == DBNull.Value)
-            {
-                return NotFound(new { Message = "No image found" });
-            }
-
-            return Ok(new GetCharactersResponse()
-            {
-                Characterspath = (string)result
-            });
+            return Ok(result);
         }
 
 
     }
-}
 
-public class LoginRequest
+    public class ExceptionFilterAttribute  : IAsyncExceptionFilter
+    {
+        public void OnException(ExceptionContext context)
+        {
+            throw new NotImplementedException();
+        }
 
-{
-    public required string Email { get; set; }
-    public required string Password { get; set; }
-    public required bool Remember { get; set; }
-    
-}
-
-public class LoginResponse
-{
-    public bool Status { get; set; }
-    public string? Token { get; set; }
-    public bool Remember { get; set; }
-    
+        public Task OnExceptionAsync(ExceptionContext context)
+        {
+            throw new NotImplementedException();
+        }
+    }
 }
 
 
-public class GetCharactersResponse
-{
-    public string Characterspath { get; set; }
-}
