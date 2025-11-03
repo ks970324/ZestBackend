@@ -36,7 +36,7 @@ namespace ZestApi.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error while registering user");
-                return StatusCode(500, new { message = "Internal server error" });
+                return StatusCode(500, new { message = ex.Message });
             }
 
 

@@ -3,14 +3,18 @@ using System.Text.Json.Serialization;
 
     public class RegisterRequest
     {
+        [JsonPropertyName("email")]
         public string Email { get; set; }
+        [JsonPropertyName("password")]
         public string Password { get; set; }
-        public string Characterspath { get; set; }
+        [JsonPropertyName("characterspath")]
+        public string CharactersPath { get; set; }
     }
 
     public class RegisterDto
     {
         public string RegisterResult { get; set; }
+        public Boolean Status { get; set; }
     }
 
 
@@ -23,5 +27,6 @@ using System.Text.Json.Serialization;
 
     public class CheckEmailRequest
     {
+        [JsonPropertyName("email")]
         public string Email { get; set; }
     }
