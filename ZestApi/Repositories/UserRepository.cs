@@ -5,34 +5,38 @@ using ZestApi.Data;
 
 public interface IUserRepository
 {
-    UserInfo? GetUserByEmailAndPassword(string email, string password);
-    string? GetUserImageByEmail(string email);
+    Task<UserInfo> GetUserByEmailAsync(string email);
+    Task<string?> GetUserImageByEmailAsync(string email);
     Task<bool> EmailExistsAsync(string email);
     Task AddUserAsync(UserInfo user);
+    Task UpdateUserAsync(UserInfo user);
+    
 }
 
 public class UserRepository : IUserRepository
 {
     private readonly AppDbContext _db;
 
+    
     public UserRepository(AppDbContext db)
     {
         _db = db;
     }
 
-    public UserInfo? GetUserByEmailAndPassword(string email, string password)
+    public async Task<UserInfo> GetUserByEmailAsync(string email)
     {
-        return _db.userinfo
-            .FirstOrDefault(u => u.Email == email && u.Password_hash == password);
+        return await _db.userinfo.FirstOrDefaultAsync(u => u.Email == email);
     }
+        
+    
 
-    public string? GetUserImageByEmail(string email)
+    public async Task<string?> GetUserImageByEmailAsync(string email)
     {
-        return _db.userinfo
+        return await _db.userinfo
             .Where(u => u.Email == email)
             .Select(u => u.Image)
-            .FirstOrDefault();
-    } 
+            .FirstOrDefaultAsync(); 
+    }
     
     public async Task<bool> EmailExistsAsync(string email)
     {
@@ -42,7 +46,30 @@ public class UserRepository : IUserRepository
     public async Task AddUserAsync(UserInfo user)
     {
         await _db.userinfo.AddAsync(user);
-        await _db.SaveChangesAsync();
+        try
+        {
+            await _db.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex)
+        {
+            Console.WriteLine(ex.InnerException?.Message);
+            throw;
+        }
+    }
+    
+    public async Task UpdateUserAsync(UserInfo user)
+    {
+        user.Last_Login = user.Last_Login.ToUniversalTime();
+        user.CreatedAt = user.CreatedAt.ToUniversalTime();
+        _db.userinfo.Update(user);
+        try
+        {
+            await _db.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex)
+        {
+            Console.WriteLine(ex.InnerException?.Message);
+        }
     }
     
     

@@ -54,9 +54,16 @@ builder.Services.AddAuthorization();
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("PostgresDb")));
 
+//
+builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+
+
+
 // DI register  
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IRegisterServices, RegisterServices>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+
 
 
 
